@@ -15,10 +15,10 @@ build: $(SOURCES)
 
 release: build
 	# TODO: publish binaries
-	git diff
-	@echo "release $(RELEASE_TAG) (y/N)?"
+	@echo "releasing $(RELEASE_TAG), press Enter to continue or Ctrl-C to abort"
+	@read key
 	git add Makefile && git commit -m "release $(RELEASE_TAG)"
 	git tag $(RELEASE_TAG)
-	read key && test "$$key"=y && git push && git push --tags
+	git push && git push --tags
 
 include Make.local.mk
