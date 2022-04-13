@@ -19,7 +19,6 @@ release: build
 	@echo "release $(RELEASE_TAG) (y/N)?"
 	git add Makefile && git commit -m "release $(RELEASE_TAG)"
 	git tag $(RELEASE_TAG)
-	read key && test "$$key"=y &&
-	# git push && git push --tags
+	read key && test "$$key"=y && git push && git push --tags
 
 include Make.local.mk
