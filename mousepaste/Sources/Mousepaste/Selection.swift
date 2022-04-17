@@ -51,9 +51,7 @@ class SelectionEvent {
             }
         }
         restored = readPasteboard()
-        if DEBUG {
-            print(describe())
-        }
+        if config.debug { print(describe()) }
     }
 
     func describe() -> String {
@@ -89,7 +87,7 @@ func CopySelectionFromPasteboard() -> String {
     // TODO: b) determine if Cmd+C had any effect
     // TODO: c) determine if Cmd+C will have any effect before even sending the keypress
     sendCopyCommand()
-    Thread.sleep(forTimeInterval: PasteboardCopyDelay)
+    Thread.sleep(forTimeInterval: config.pasteboardCopyDelay)
     return readPasteboard()
 }
 
@@ -99,5 +97,5 @@ func PasteSelection(_ val:String) {
 
     writePasteboard(val)
     sendPasteCommand()
-    Thread.sleep(forTimeInterval: PasteboardCopyDelay)
+    Thread.sleep(forTimeInterval: config.pasteboardCopyDelay)
 }

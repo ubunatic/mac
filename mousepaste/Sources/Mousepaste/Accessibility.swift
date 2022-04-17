@@ -1,23 +1,28 @@
+// This accessibility package implements key pressoing, detection of selected
+// UI elements and detection of selected text. It relys on the system's
+// accessibility API. The host app must be added to trusted applications in
+// Security > Privacy > Accessibility.
+
 import Foundation
 import ApplicationServices
 import AppKit
 
+let kTrusted = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
+let kTrustedOptions = [kTrusted:true] as CFDictionary
+let kFocused = kAXFocusedUIElementAttribute as CFString
+let kSelected = kAXSelectedTextAttribute as CFString
+
 // ensureTrustedAccess returns whether or not Accessibility is enabled.
 func ensureTrustedAccess() -> Bool {
-    let ok = AXIsProcessTrustedWithOptions(
-        [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
-
-    if ok {
+    debug("Mousepaste:Accessibility:ensureTrustedAccess")
+    let trusted = AXIsProcessTrustedWithOptions(kTrustedOptions)
+    if trusted {
         print("Accessibility preferences enabled")
     } else {
         print("ERROR: Accessibility preferences not enabled")
     }
-
-    return ok
+    return trusted
 }
-
-let kFocused = kAXFocusedUIElementAttribute as CFString
-let kSelected = kAXSelectedTextAttribute as CFString
 
 func hasTextInputFocus() -> Bool {
     // First Try: Total failure using accessibility attributes!
@@ -53,14 +58,12 @@ func isTextInput(_ elem:AXUIElement?) -> Bool {
         return false
     }
 
-
     // This type check was useless: In VSCode all UI elements had the same type!
+    // TODO: are there better ways to check UI types that work well in Electron apps?
     let type = CFGetTypeID(elem)
     switch type {
     default:
-        if DEBUG {
-            print("CFTypeID: \(type)")
-        }
+        if config.debug { debug("CFTypeID: \(type)") }
     }
 
     return false

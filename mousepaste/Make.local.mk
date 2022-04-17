@@ -20,5 +20,5 @@ $(SCRIPT): $(SOURCES)
 	./generate.sh > $@
 	chmod +x $@
 
-script: $(SCRIPT)
+script: $(SCRIPT) generate.sh
 run:    $(SCRIPT); $^

@@ -11,9 +11,10 @@ clean:
 	rm -rf .build script
 
 build: $(SOURCES)
-	swift build -c release --disable-sandbox
+	swift build --disable-sandbox
 
 release: build
+	swift build -c release --disable-sandbox
 	# TODO: publish binaries
 	@echo "releasing $(RELEASE_TAG), press Enter to continue or Ctrl-C to abort"
 	@read key

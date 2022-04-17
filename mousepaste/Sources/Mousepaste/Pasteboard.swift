@@ -8,7 +8,6 @@ import AppKit
 
 let cmdKeyPresser = CmdKeyPresser()
 var backupValue = ""
-var backupHistory = "<empty>"
 
 func sendCopyCommand() {
     cmdKeyPresser.press(CmdKeyPresser.C)
@@ -45,10 +44,6 @@ func backupPasteboard() {
     let val = readPasteboard()
     if val != backupValue {
         backupValue = val
-        if DEBUG {
-            backupHistory += " | " + backupValue
-            print(backupHistory)
-        }
     }
 }
 

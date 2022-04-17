@@ -8,12 +8,10 @@ import AppKit
 typealias Mask = NSEvent.EventTypeMask
 typealias Type = NSEvent.EventType
 
-class Watcher {
-    var watching = false
+class Watcher: Service {
     var dragging = false
     var selection = ""
-
-    init() {}
+    var observer:Any?
 
     func handleEvent(e: NSEvent) -> Void {
         let isLeftUp = e.type == Type.leftMouseUp
@@ -41,16 +39,29 @@ class Watcher {
         event?.execute()
     }
 
-    func watch() {
-        if watching {
+    func stop() {
+        if observer != nil {
+            NSEvent.removeMonitor(observer!)
+            if config.debug { print("removed observer: \(observer.debugDescription)") }
+            print("Stopped mouse selection watcher")
+            observer = nil
+        }
+    }
+
+    func start() {
+        if observer != nil {
             return
         }
-
-        watching = true
-        NSEvent.addGlobalMonitorForEvents(
+        observer = NSEvent.addGlobalMonitorForEvents(
             matching: self.selectionMask,
             handler: self.handleEvent
         )
+        if config.debug { print("added observer: \(observer.debugDescription)") }
+        print("Starting mouse selection watcher")
+    }
+
+    var isActive: Bool {
+        get { return observer != nil }
     }
 
     let selectionMask:Mask = [

@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug Mousepaste (mousepaste)",
+            "program": "${workspaceFolder:mac}/mousepaste/.build/debug/Mousepaste",
+            "args": [],
+            "cwd": "${workspaceFolder:mac}/mousepaste",
+            "preLaunchTask": "swift: Build Debug Mousepaste (mousepaste)"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Release Mousepaste (mousepaste)",
+            "program": "${workspaceFolder:mac}/mousepaste/.build/release/Mousepaste",
+            "args": [],
+            "cwd": "${workspaceFolder:mac}/mousepaste",
+            "preLaunchTask": "swift: Build Release Mousepaste (mousepaste)"
+        }
+    ]
+}
