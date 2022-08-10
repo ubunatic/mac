@@ -1,4 +1,4 @@
-import AppKit
+import SwiftUI
 
 class App : NSObject, NSApplicationDelegate {
     let app = NSApplication.shared

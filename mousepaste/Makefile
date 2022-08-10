@@ -1,20 +1,38 @@
-.PHONY: all clean build release
+.PHONY: all clean build install publish app
 
-SOURCES = $(shell find Sources -name '*.swift')
-VERSION = v0.0.1
-NAME    = mousepaste
-RELEASE_TAG = $(NAME)-$(VERSION)
+SOURCES     = $(shell find Sources -name '*.swift')
+VERSION     = v0.0.1
+NAME        = Mousepaste
+DEBUG      ?=
+BUILD       = debug
+APP         = $(NAME).app
+BINARY      = .build/$(BUILD)/$(NAME)
+RESOURCES   = .build/$(BUILD)/$(NAME)_$(NAME).bundle
+RELEASE_TAG = mousepaste-$(VERSION)
 
-all: build
+export DEBUG
+
+all: build app
 
 clean:
-	rm -rf .build script
+	rm -rf .build
+	rm -rf "$(APP)"
 
 build: $(SOURCES)
-	swift build --disable-sandbox
+	rm -f $(BINARY)
+	$(MAKE) -C Icons
+	swift build -c $(BUILD) --disable-sandbox
 
-release: build
-	swift build -c release --disable-sandbox
+app: build
+	rm -rf "$(APP)"
+	mkdir -p $(APP)/Contents/{MacOS,Plugins}
+	# mkdir -p $(APP)/Contents/Frameworks
+	cp -r $(BINARY) $(APP)/Contents/MacOS/
+	cp -r $(BINARY)_$(NAME).bundle $(APP)/Contents/Resources
+	# copied resources:
+	ls -la $(APP)/Contents/Resources
+
+publish:
 	# TODO: publish binaries
 	@echo "releasing $(RELEASE_TAG), press Enter to continue or Ctrl-C to abort"
 	@read key

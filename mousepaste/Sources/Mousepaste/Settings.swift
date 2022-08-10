@@ -1,65 +1,51 @@
-import Foundation
-import AppKit
+import SwiftUI
+import Logging
+import Appster
 
-class Settings: NSViewController {
-	var prefsWindow:NSWindow?
-	let delaySlider = NSSlider.init()
-	let delayText = NSTextField.init()
+public struct SettingsView: View {
+    @StateObject var state = MousepasteConfig.shared
 
-    override func loadView() {
-        view = NSView()
+    func getDelayMillis() -> String {
+        return String(format: "%.fms", $state.pasteboardCopyDelay.wrappedValue * 1000)
     }
 
-	var window: NSWindow {
-		if prefsWindow != nil {
-			return prefsWindow!
-		}
-		let w = NSWindow(
-			contentRect:  NSRect(origin: .zero, size: .init(width: 200, height: 100)),
-            styleMask: [.closable],
-            backing: .buffered,
-            defer: false
-		)
-        w.title = "Settings"
-        w.isOpaque = false
-        w.center()
-        w.isMovableByWindowBackground = true
-        w.backgroundColor = NSColor(calibratedHue: 0, saturation: 1.0, brightness: 0, alpha: 0.7)
-        // w.makeKeyAndOrderFront(nil)
-		w.contentViewController = self
-		prefsWindow = w
+	func clear() { clearConfigAndUserDefaults() }
+    func debug() {}
 
-		print("window built")
-		return w
-	}
+    public var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if LogConfig.debug { HStack {
+                Text("MP 18x18:")
+                Images.MousepasteIcns.resizable().frame(width: 18, height: 18)
+                Text("MP 20x20:")
+                Images.MousepasteIcns.resizable().frame(width: 20, height: 20)
+                Text("AppIcon")
+                Images.AppIcon.image
+            }}
 
-	@IBAction func sliderValueChanged(_ sender: NSSlider) {
-		setDelayText()
-	}
-
-	@IBAction func cancelButtonClicked(_ sender: Any) {
-		window.close()
-	}
-
-	@IBAction func okButtonClicked(_ sender: Any) {
-		savePrefs()
-		window.close()
-	}
-
-	func loadPrefs() {
-		let delayMs = Int(config.pasteboardCopyDelay * 1000.0)
-		delaySlider.isEnabled = true
-		delaySlider.integerValue = delayMs
-		setDelayText()
-		print("config loaded")
-	}
-
-	func savePrefs() {
-		config.pasteboardCopyDelay = delaySlider.doubleValue / 1000.0
-		NotificationCenter.default.post(name: Notification.Name(rawValue: "PrefsChanged"), object: nil)
-	}
-
-	func setDelayText() {
-		delayText.stringValue = "\(delaySlider.doubleValue) ms"
-	}
+            HStack { Toggle("Show colored menu icons",         isOn: $state.fancyGui) }
+            HStack { Toggle("Start capturing when app starts", isOn: $state.autoStart) }
+            HStack { Toggle("Start Mousepaste on login (WIP)", isOn: $state.autoLoad) }
+            HStack {
+                Slider(value: $state.pasteboardCopyDelay)
+                Text(getDelayMillis())
+                Text("Pasteboard delay")
+            }.help("Delay in Milliseconds before sending ⌘C when copying selection from non-Cocoa UIs")
+            HStack {
+                if LogConfig.debug {
+                    Button(action: debug) { Text("Debug") }
+                }
+                Button(state.fancyGui ? Icons.Clear : "Restore Defaults", action: clear)
+                    .help("Clear stored settings and load defaults")
+            }
+        }
+        .frame(width: 400, height: 200)
+        .padding(20)
+        .onAppear {
+            info("SettingsView.appear")
+        }
+        .onDisappear {
+            info("SettingsView.disappear")
+        }
+    }
 }

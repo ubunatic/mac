@@ -88,3 +88,6 @@ fastlane/test_output
 # https://github.com/johnno1962/injectionforxcode
 
 iOSInjectionProject/
+
+# Apple! Why do you put your trash all over my filesystem!?
+.DS_Store

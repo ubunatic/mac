@@ -1,24 +1,45 @@
-.PHONY: install uninstall script run
+.PHONY: install uninstall run rund open run-open stop watch develop
 
 SOURCES ?= $(shell find Sources -name '*.swift')
-SCRIPT   = script/mousepaste.swift
+ARGS    ?= --debug
+PREFIX  ?= /opt/mousepaste
+BINDIR   = Mousepaste.app/Contents/MacOS
+RESDIR   = Mousepaste.app/Contents/Resources
 
-prefix ?= /usr/local
-bindir ?= $(prefix)/bin
-
-install:
-	install -d "$(bindir)"
-	install ".build/release/Mousepaste" "$(bindir)/Mousepaste"
+install: Mousepaste.app
+	install -d "$(PREFIX)/$(BINDIR)"
+	install -d "$(PREFIX)/$(RESDIR)"
+	install $(BINDIR)/Mousepaste      "$(PREFIX)/$(BINDIR)"
+	install $(RESDIR)/Mousepaste.icns "$(PREFIX)/$(RESDIR)"
+	install $(RESDIR)/Mousepaste.svg  "$(PREFIX)/$(RESDIR)"
+	# Please add $(PREFIX)/$(BINDIR) to your PATH.
+	#
+	#    export PATH="$$PATH:$(PREFIX)/$(BINDIR)"
+	#
+	# Then run the app using the `Mousepaste` binary (try `Mousepaste -h`)
 
 uninstall:
 	rm -rf "$(bindir)/Mousepaste"
 
-# Produce XCode-free and workaround-free script version by
-# cating all code to one file.
-$(SCRIPT): $(SOURCES)
-	mkdir -p script
-	./generate.sh > $@
-	chmod +x $@
+open run-open: stop
+	# running Mousepaste.app
+	open Mousepaste.app -W || "app start failed"
 
-script: $(SCRIPT) generate.sh
-run:    $(SCRIPT); $^
+run: stop
+	# running Mousepaste binary directly
+	./Mousepaste.app/Contents/MacOS/Mousepaste $(ARGS)
+
+rund: stop
+	# running Mousepaste detached
+	@$(MAKE) run&
+	# app started in background
+
+stop:
+	@pkill Mousepaste && echo "Mousepaste stopped" || echo "Mousepaste not running"
+
+watch:
+	# waiting for ./Sources changes...
+	@fswatch -1 ./Sources
+
+develop:
+	make stop build app rund watch develop DEBUG=1

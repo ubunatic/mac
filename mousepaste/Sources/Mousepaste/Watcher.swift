@@ -1,12 +1,9 @@
 // Watcher package implements a mouse event monitor
 // for captruring selection actions done with the mouse.
 
-import ApplicationServices
 import Foundation
-import AppKit
-
-typealias Mask = NSEvent.EventTypeMask
-typealias Type = NSEvent.EventType
+import SwiftUI
+import Logging
 
 class Watcher: Service {
     var dragging = false
@@ -14,9 +11,15 @@ class Watcher: Service {
     var observer:Any?
 
     func handleEvent(e: NSEvent) -> Void {
-        let isLeftUp = e.type == Type.leftMouseUp
-        let isOtherUp = e.type == Type.otherMouseUp
-        let isDrag = e.type == Type.leftMouseDragged
+        // TODO: Consider breaking early on events that need not be handled.
+        //       This would probably mean moving some UI detection logic here. 🤔
+        //       But maybe there is a smarter way to detect non-text selection events;
+        //       esp. in Games where you may be dragging the mouse a lot and also
+        //       shift clicks are very common.
+
+        let isLeftUp = e.type == .leftMouseUp
+        let isOtherUp = e.type == .otherMouseUp
+        let isDrag = e.type == .leftMouseDragged
         let isShiftDown = e.modifierFlags.contains(NSEvent.ModifierFlags.shift)
         if isDrag {
             dragging = true
@@ -42,7 +45,7 @@ class Watcher: Service {
     func stop() {
         if observer != nil {
             NSEvent.removeMonitor(observer!)
-            if config.debug { print("removed observer: \(observer.debugDescription)") }
+            if LogConfig.debug { print("removed observer: \(observer.debugDescription)") }
             print("Stopped mouse selection watcher")
             observer = nil
         }
@@ -56,7 +59,7 @@ class Watcher: Service {
             matching: self.selectionMask,
             handler: self.handleEvent
         )
-        if config.debug { print("added observer: \(observer.debugDescription)") }
+        if LogConfig.debug { print("added observer: \(observer.debugDescription)") }
         print("Starting mouse selection watcher")
     }
 
@@ -64,10 +67,10 @@ class Watcher: Service {
         get { return observer != nil }
     }
 
-    let selectionMask:Mask = [
-        Mask.leftMouseDown, Mask.leftMouseUp,
-        Mask.otherMouseDown, Mask.otherMouseUp,
-        Mask.leftMouseDragged
+    let selectionMask:NSEvent.EventTypeMask = [
+        .leftMouseDown, .leftMouseUp,
+        .otherMouseDown, .otherMouseUp,
+        .leftMouseDragged
     ]
 
     static let shared = Watcher()

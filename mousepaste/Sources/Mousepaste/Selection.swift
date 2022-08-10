@@ -1,6 +1,10 @@
-import Foundation
-import ApplicationServices
+import SwiftUI
+import Appster
+import Logging
 
+// SelectionEvent represents the properties of a text selection event
+// triggered by the mouse or other forms of input.
+// The supported event types are Copy and Paste.
 class SelectionEvent {
     enum EventType:Int {
         case Copy, Paste
@@ -13,9 +17,9 @@ class SelectionEvent {
     var type:EventType
     var description:String
 
-    var backup = ""
+    var backup:[PBData] = []
     var selected = ""
-    var restored = ""
+    var restored:[PBData] = []
     var provider = SelectionProvider.None
 
     static var sharedText = ""
@@ -23,6 +27,10 @@ class SelectionEvent {
     // A serialQueue allows serializing function calls to
     // avoid data races from concurrent events.
     static let serialQueue = DispatchQueue(label: "SelectionEvent.serialQueue")
+
+    static func clear() {
+        sharedText = ""
+    }
 
     init(_ type:EventType, _ description:String) {
         self.type = type
@@ -46,26 +54,26 @@ class SelectionEvent {
                 SelectionEvent.sharedText = selected
             }
         case .Paste:
-            if hasTextInputFocus() {
+            if AX.hasTextInputFocus() {
                 PasteSelection(SelectionEvent.sharedText)
             }
         }
         restored = readPasteboard()
-        if config.debug { print(describe()) }
+        if LogConfig.debug { print(describe()) }
     }
 
     func describe() -> String {
-        return ("SelectionEvent(" +
-            "backup:\(backup), " +
-            "selected:\(selected), " +
-            "restored:\(restored), " +
-            "provider:\(provider))"
+        return ("SelectionEvent(\(provider), \(selected))  # " +
+            "💾 \(TextFromPBItems(backup))  " +
+            "📲 \(TextFromPBItems(restored))  " +
+            // "shared == selected: \(SelectionEvent.sharedText == selected))" +
+            ""
         )
     }
 }
 
 func GetSelection() -> (String, SelectionEvent.SelectionProvider) {
-    let val = getFocusedSelection()
+    let val = AX.getFocusedSelection()
     if val != "" {
         return (val, .AX)
     }
@@ -73,22 +81,56 @@ func GetSelection() -> (String, SelectionEvent.SelectionProvider) {
 }
 
 func CopySelectionFromPasteboard() -> String {
+    debugValue("backupValueBeforeBackup:", TextFromPBItems(MP.backupValue) + "  len:\(MP.backupValue.count)")
     backupPasteboard()
+    debugValue("backupValueAfterBackup:", TextFromPBItems(MP.backupValue) + "  len:\(MP.backupValue.count)")
     defer { restorePasteboard() }
 
-    // Must clear pasteboard to allow reading empty selection!
-    // VSCode for instance will not copy anyting on Cmd+C unless
-    // "editor.emptySelectionClipboard" is true.
-    // If not cleared, readPasteboard will later read anything that is left on
-    // the pasteboard instead of the selected (empty) text.
-    clearPasteboard()
+    // Sometimes Cmd+C will have no effect. VSCode for instance will not copy
+    // anyting on Cmd+C unless "editor.emptySelectionClipboard" is true.
+    // If not cleared and Cmd+C has no effect, we may be left with a wrong old
+    // value on the pasteboard.
 
-    // TODO: a) find alternative to detect empty selection
-    // TODO: b) determine if Cmd+C had any effect
-    // TODO: c) determine if Cmd+C will have any effect before even sending the keypress
+    // TODO: clear clears all content, also in any Object copies of it!
+    //       This kills the backup feature. How can we preserve the items in the backup store?
+    // clearPasteboard()
+
+    // TODO: consider clearing only the top item or pushing an empty item to
+    //       preserve other items that may ne be affected by Mousepaste
+    // TODO: find alternative to detect empty selection
+    // TODO: determine if Cmd+C will have any effect before even sending Cmd+C
+
     sendCopyCommand()
-    Thread.sleep(forTimeInterval: config.pasteboardCopyDelay)
-    return readPasteboard()
+    // TODO: Determine if Cmd+C had any effect.
+    // TODO: try to use NSPasteboard.general.changeCount to detect if something was copied
+
+    // To ensure the system or external app can actually copy the text, we need
+    // to give it some time to do so. Configuring this delay is tricky, since
+    // some apps may be slower than other, system may be under load, hardware
+    // may be different, etc. On the other hand, a too big value will feel
+    // slow to the user who wants to mouse-paste the value after half a Second.
+    Thread.sleep(forTimeInterval: MP.config.pasteboardCopyDelay)
+    // TODO: Is Thread.sleep the right way for sleeping in modern swift?
+    //       Note that the whole operation should be synchronous though
+    //       to avoid serialization issues from multiple selection events.
+
+    debugValue("backupValueAfterCopy:", TextFromPBItems(MP.backupValue) + "  len:\(MP.backupValue.count)")
+
+    let text = TextFromPBItems(readPasteboard())
+    if text != "" {
+        // debugValue("text", text)
+    }
+    return text
+}
+
+func TextFromPBItems(_ items: [PBData]) -> String {
+    var text = ""
+    for item in items {
+        if item.type == .string {
+            text += item.Text()
+        }
+    }
+    return text
 }
 
 func PasteSelection(_ val:String) {
@@ -97,5 +139,7 @@ func PasteSelection(_ val:String) {
 
     writePasteboard(val)
     sendPasteCommand()
-    Thread.sleep(forTimeInterval: config.pasteboardCopyDelay)
+
+    // See discussion in CopySelectionFromPasteboard
+    Thread.sleep(forTimeInterval: MP.config.pasteboardCopyDelay)
 }
