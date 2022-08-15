@@ -17,9 +17,9 @@ class SelectionEvent {
     var type:EventType
     var description:String
 
-    var backup:[PBData] = []
+    var backup:[PBItem] = []
     var selected = ""
-    var restored:[PBData] = []
+    var restored:[PBItem] = []
     var provider = SelectionProvider.None
 
     static var sharedText = ""
@@ -123,12 +123,10 @@ func CopySelectionFromPasteboard() -> String {
     return text
 }
 
-func TextFromPBItems(_ items: [PBData]) -> String {
+func TextFromPBItems(_ items: [PBItem]) -> String {
     var text = ""
     for item in items {
-        if item.type == .string {
-            text += item.Text()
-        }
+        text += item.Text()
     }
     return text
 }

@@ -34,12 +34,13 @@ public struct PBData {
     }
 }
 
-struct PBItem {
+// PBItem is a complete Pasteboard item with separately stored representations of the data.
+public struct PBItem {
     // captured data representations of various tpyes for this Pasteboard item.
-    let data:[PBData] = []
+    public var data:[PBData] = []
 
     // Text returns the string data representation of the Pasteboard item.
-    func Text() -> String {
+    public func Text() -> String {
         for d in data {
             if d.type == .string {
                 return d.Text()
@@ -53,7 +54,7 @@ extension MP {
     static let cmdKeyPresser = CmdKeyPresser()
     // TODO: Support other backup types (and restirong them)
     //       or use a list of backups and rearrange them accordingly.
-    static var backupValue:[PBData] = []
+    static var backupValue:[PBItem] = []
 }
 
 func IsTextItem(_ t:NSPasteboard.PasteboardType) -> Bool {
@@ -99,7 +100,7 @@ func sendPasteCommand() {
     MP.cmdKeyPresser.press(CmdKeyPresser.V)
 }
 
-func readPasteboard() -> [PBData] {
+func readPasteboard() -> [PBItem] {
     let pb = NSPasteboard.general
 
     guard let items = pb.pasteboardItems else {
@@ -107,18 +108,14 @@ func readPasteboard() -> [PBData] {
         return []
     }
 
-    var data:[PBData] = []
+    var contents:[PBItem] = []
 
     for item in items.reversed() {
-        data.append(contentsOf: item.PBDataItems())
-        break
-        // stopping on the first item to not mix different items into one
-        // multi-paste-type dataset
-
-        // TODO: add support multiple items (probably from table cells, files, etc.)
+        let data = item.PBDataItems()
+        contents.append(PBItem(data:data))
     }
 
-    return data
+    return contents
 }
 
 func writePasteboard(_ val:String) {
@@ -127,9 +124,11 @@ func writePasteboard(_ val:String) {
 	}
     let item = NSPasteboardItem()
     item.setString(val, forType: .string)
-    clearAndWritePasteboard([PBData(
-        data:item.data(forType: .string),
-        type: .string
+    clearAndWritePasteboard([PBItem(
+        data: [PBData(
+            data: item.data(forType: .string),
+            type: .string
+        )]
     )])
 }
 
@@ -137,35 +136,23 @@ func clearPasteboard() {
     NSPasteboard.general.clearContents()
 }
 
-func clearAndWritePasteboard(_ items:[PBData]) {
+func clearAndWritePasteboard(_ items:[PBItem]) {
     NSPasteboard.general.clearContents()
     for item in items {
-        NSPasteboard.general.setData(item.data, forType: item.type)
+        for d in item.data {
+            NSPasteboard.general.setData(d.data, forType: d.type)
+        }
     }
 }
 
 func backupPasteboard() {
     let items = readPasteboard()
-    // while(MP.backupValue.popLast() != nil) {}
-    // for item in items {
-
-    //     guard let data = item.Data() else { continue }
-    //     debugValue("backupItem.Data", (data, item.Type()))
-
-    //     let cp = NSPasteboardItem(
-    //         // pasteboardPropertyList: item.propertyList(forType: item.Type()) as Any,
-    //         // ofType: item.Type()
-    //     )
-
-    //     cp.setData(data, forType: item.Type())
-    //     MP.backupValue.append(cp)
-    // }
     MP.backupValue = items
-    debugValue("backup", TextFromPBItems(items))
+    debugValue("backed up", items)
 }
 
 func restorePasteboard() {
-    let restored = MP.backupValue
-    debugValue("restoring", TextFromPBItems(restored))
-    clearAndWritePasteboard(restored)
+    let items = MP.backupValue
+    debugValue("restoring", TextFromPBItems(items))
+    clearAndWritePasteboard(items)
 }
